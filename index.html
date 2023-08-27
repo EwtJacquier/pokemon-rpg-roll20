@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Macro Generator - Pokemon Spark RPG</title>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js" integrity="sha256-oP6HI9z1XaZNBrJURtCoUT5SUnxFr8s3BzRl+cbzUq8=" crossorigin="anonymous"></script>
+    <style>
+        *{box-sizing: border-box;}
+        html,body{font-size: 18px; width: 100%; max-width: 1200px; font-family: arial; margin: 10px auto;}
+        input, textarea{padding: 10px 15px; display: block; margin-top: 5px; width: 100%; font-weight: bold;}
+        input{font-size: 16px;}
+        label{display: block; width: 100%; font-size: 16px;}
+        label:not(:last-child){
+            margin-bottom: 10px;
+        }
+        textarea{resize: none; height: 150px;}
+        small{
+            margin-top: 10px;
+            display: block;
+        }
+        h1{text-align: center; font-size: 20px;}
+        .d-flex{display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; align-items: start;}
+        .d-flex label:not(:only-child){width: calc(100% - 90px);}
+        .d-nowrap{flex-wrap: nowrap;}
+        .skill-box{padding: 10px;margin-bottom: 10px;border: solid 1px #ccc;}
+        .skill-cost{background: #000; color: #fff; padding: 5px; display: block; width: 70px; text-align: center;}
+        .skill-options{display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;}
+        .skill-options:last-child{margin-bottom: 0;}
+        .skill-options label{margin-bottom: 0; width: 100% !important;}
+        .skill-options button{padding: 0; border: none; background: transparent; cursor: pointer; position: relative; font-size: 18px;}
+        .skill-options button span{position: absolute; background: rgba(255,255,255,0.8); font-weight: bold; padding: 2px; top: -2px; z-index: 1; right: -2px; color: red;}
+        .skill-container{display: flex; gap: 20px;}
+        .skill-col:first-child{width: 40%;}
+        .skill-col:last-child{width: 60%;}
+        .skill-imgs{display: flex; gap: 10px; flex-wrap: wrap; margin-top: -20px;}
+        .skill-imgs label{margin-bottom: 0; width: 100% !important;}
+        .skill-imgs-action{position: relative;}
+        .skill-imgs-action:hover button{display: block;}
+        .skill-imgs-action button{position: absolute; opacity: 0; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; cursor: pointer;}
+        .skill-imgs-action span{position: absolute; background: rgba(255,255,255,0.8); font-weight: bold; padding: 2px; top: -2px; z-index: 1; right: -2px; color: red;}
+    </style>
+</head>
+<body>
+    <h1>Gerador de Macro v1.0 - Pokemon Spark RPG</h1>
+    <div class="skill">
+        <div class="skill-container">
+            <div class="skill-col">
+                <div class="d-flex skill-box">
+                    <label>
+                        Nome do Pokemon
+                        <input type="text" class="skill-char">
+                        <small>Observação: Deve ser exatamente igual ao nome do token</small>
+                    </label>
+                </div>
+                <div class="d-flex skill-box">
+                    <label>
+                        Nome da Habilidade
+                        <input type="text" class="skill-name">
+                    </label>
+                    <div class="skill-info">
+                        <label>Custo</label>
+                        <span class="skill-cost">? PP</span>
+                    </div>
+                    <div class="skill-imgs">
+                        <label>Ações</label>
+                    </div>
+                </div>
+                <div class="d-flex skill-box">
+                    <label>
+                        GIF da Habilidade
+                        <input type="text" class="skill-image">
+                        <small>Observação: Deve ser um link de imagem</small>
+                    </label>
+                </div>
+
+                <div class="skill-box">
+                    <label>
+                        Macro Roll20
+                        <textarea class="skill-macro"></textarea>
+                    </label>
+                </div>
+            </div>
+            <div class="skill-col">
+                <div class="skill-box d-flex d-nowrap">
+                    <div class="skill-options simples">
+                        <label>Simples</label>
+                    </div>
+                </div>
+                <div class="skill-box">
+                    <div class="skill-options avancado">
+                        <label>Avançado</label>
+                    </div>
+                </div>
+                <div class="skill-box">
+                    <div class="skill-options superior">
+                        <label>Superior</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let skill_replacer = '';
+        let arma_espiritual = false;
+        
+        const classes = {
+            simples: ['movimentar', 'ataque', 'empurrar'],
+            avancado: ['certeira', 'reagir', 'impulso'],
+            superior: ['direcionar','area', 'curar']
+        };
+
+        const actions = {
+            movimentar: [1, "{{Movimentar +[[1]]= Bônus de MV}}"],
+            ataque: [1, "{{Atacar +[[1]]=Bônus de Dano}}"],
+            empurrar: [1, "{{Empurrar +[[1]]=Empurrado}}"],
+            reagir: [2, "{{Reagir=Contra-ataque}}"],
+            impulso: [1, "{{Impulso +[[2]]=Bônus de MV}}"],
+            certeira: [1, "{{Certeiro [[2]]=Até 2 casas}}"],
+            area: [2, "{{Em Área [[3]]=3 alvos, 3 casas}}"],
+            direcionar: [2, "{{Direcionar [[5]]=Percorre casas}}"],
+            curar: [1, "{{Curar +[[2]]=Recuperação de PV}}"],
+        };
+
+        function genAction(char, action, sync = false){
+            let replace = '';
+
+            if (skill_replacer && typeof(modified_actions[skill_replacer+'_'+action]) !== 'undefined'){
+                replace = modified_actions[skill_replacer+'_'+action];
+            }
+
+            if (sync && typeof(actions[action + '2x']) !== 'undefined') action += '2x';
+
+            let macro = typeof(actions[action]) !== 'undefined' ? actions[action][1] : '';
+            let cost = typeof(actions[action]) !== 'undefined' ? actions[action][0] : '';
+
+            if (replace){
+                macro = macro.replace(replace[0],replace[1]);
+
+                if (replace.length === 4){
+                    macro = macro.replace(replace[2],replace[3]);
+                }
+            }
+
+            macro = macro.replace('char|',char + '|');
+            macro = macro.replace('char|',char + '|');
+            macro = macro.replace('char|',char + '|');
+            macro = macro.replace('char|',char + '|');
+            macro = macro.replace('char|',char + '|');
+            macro = macro.replace('char|',char + '|');
+            macro = macro.replace('char|',char + '|');
+            macro = macro.replace('char|',char + '|');
+
+            return [macro, cost];
+        }
+
+        function genMacro(char, skill_name = '?', all_actions = [] ){
+            let macro = ['&{template:default} {{name='+char+' - '+skill_name+'}}'];
+            let cost = 0;
+
+            if (all_actions.length > 0){
+                skill_replacer = '';
+
+                all_actions.forEach(function(action){
+
+                    const sync = action.indexOf('2x') > -1;
+
+                    action = action.replace('2x','');
+
+                    let generated = genAction(char, action, sync);
+
+                    if (generated[0]){
+                        macro.push(generated[0]);
+                        cost += generated[1];
+                    }
+                });
+
+                macro.push('{{Dado Ataque = [[@{selected|da}]] }}');
+            }
+
+            macro = macro.join(' ');
+
+            if (jQuery('.skill-image').val().trim().length > 0){
+                macro += "\n[img]("+jQuery('.skill-image').val().trim()+")";
+            }
+
+            return [macro, cost];
+        }
+
+        function renderSkill(){
+            let skill_actions = [];
+
+            jQuery('.skill-imgs-action').each(function(){
+                skill_actions.push(jQuery(this).attr('data-action'));
+            });
+
+            const macro = genMacro(jQuery('.skill-char').val(), jQuery('.skill-name').val(), skill_actions);
+
+            jQuery('.skill-macro').val(macro[0]);
+
+            let custo_real = '?';
+
+            switch (macro[1]){
+                case 3: custo_real = 1; break;
+                case 4: custo_real = 2; break;
+                case 5: custo_real = 3; break;
+                default: custo_real = '?';
+            }
+
+            jQuery('.skill-cost').text(custo_real + ' PP');
+        }
+
+        Object.keys(classes).forEach(function(key){
+            classes[key].forEach(function(skill){
+                jQuery('<button data-action="'+skill+'" data-cost="'+actions[skill][0]+'"><img src="img/'+skill+'.png"></button>').appendTo('.skill-options.'+key);
+            })
+        });
+
+        jQuery('.skill-options button').click(function(){
+            jQuery('.skill-imgs').append(jQuery('<div class="skill-imgs-action" data-action="'+jQuery(this).attr('data-action')+'">'+jQuery(this).html()+'<button class="skill-remove">DEL</button></div>'));
+
+            renderSkill();
+        });
+
+        jQuery(document).on('click', '.skill-remove', function(){
+            jQuery(this).parent().remove();
+
+            renderSkill();
+        });
+
+        jQuery('input').on('keyup', function(){
+            renderSkill();
+        });
+    </script>
+</body>
+</html>
