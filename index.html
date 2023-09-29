@@ -108,7 +108,7 @@
         const classes = {
             simples: ['movimentar', 'ataque', 'empurrar'],
             avancado: ['certeira', 'reagir', 'impulso'],
-            superior: ['direcionar','area', 'curar']
+            superior: ['aliado','projetil', 'especial']
         };
 
         const actions = {
@@ -118,9 +118,9 @@
             reagir: [2, "{{Reagir=Contra-ataque}}"],
             impulso: [1, "{{Impulso +[[2]]=Bônus de MV}}"],
             certeira: [1, "{{Certeiro [[2]]=Até 2 casas}}"],
-            area: [2, "{{Em Área [[3]]=3 alvos, 3 casas}}"],
-            direcionar: [2, "{{Direcionar [[5]]=Percorre casas}}"],
-            curar: [1, "{{Curar +[[2]]=Recuperação de PV}}"],
+            aliado: [2, "{{Aliado [[2]]=Até 2 casas}}"],
+            projetil: [2, "{{Certeiro [[6]]=Até 6 casas}}"],
+            especial: [2, "{{Especial +[[4]]=Bônus de Dano}}"],
         };
 
         function genAction(char, action, sync = false){
